@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+
+  <meta
+    name="theme-color"
+    content="#111827"
+  />
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  />
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+  />
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="Call Alerts"
+  />
+
+  <title>Kasselmann Call Alerts</title>
+
+  <link rel="manifest" href="./manifest.json" />
+
+  <script
+    src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+    defer
+  ></script>
+
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --dark: #111827;
+      --green: #15803d;
+      --red: #b91c1c;
+      --blue: #1d4ed8;
+      --light-blue: #eff6ff;
+      --light-green: #f0fdf4;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 20px 14px 50px;
+    }
+
+    .header {
+      background: var(--dark);
+      color: white;
+      border-radius: 16px;
+      padding: 22px 18px;
+      margin-bottom: 16px;
+    }
+
+    .header h1 {
+      margin: 0 0 7px;
+      font-size: 25px;
+      line-height: 1.2;
+    }
+
+    .header p {
+      margin: 0;
+      line-height: 1.45;
+      color: #e5e7eb;
+      font-size: 15px;
+    }
+
+    .status-card,
+    .help-card,
+    .global-card {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #9ca3af;
+      flex: 0 0 auto;
+    }
+
+    .status-dot.on {
+      background: var(--green);
+    }
+
+    .status-dot.off {
+      background: var(--red);
+    }
+
+    .status-text {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .status-subtext {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .primary-button,
+    .secondary-button,
+    .save-button {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 10px;
+      border: 0;
+      padding: 12px 15px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    .primary-button,
+    .save-button {
+      background: var(--dark);
+      color: white;
+    }
+
+    .secondary-button {
+      background: #e5e7eb;
+      color: var(--text);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 22px 3px 10px;
+    }
+
+    .section-description {
+      margin: -4px 3px 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .location-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .location-header {
+      width: 100%;
+      border: 0;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      min-height: 58px;
+      cursor: pointer;
+      color: var(--text);
+      text-align: left;
+    }
+
+    .location-name {
+      font-weight: 700;
+      font-size: 17px;
+    }
+
+    .location-count {
+      display: block;
+      margin-top: 3px;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .chevron {
+      font-size: 20px;
+      transition: transform 0.2s ease;
+    }
+
+    .location-card.open .chevron {
+      transform: rotate(180deg);
+    }
+
+    .location-body {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 12px 16px 16px;
+    }
+
+    .location-card.open .location-body {
+      display: block;
+    }
+
+    .select-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .small-button {
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      color: var(--text);
+      border-radius: 8px;
+      min-height: 40px;
+      padding: 8px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .alert-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 11px 0;
+      border-bottom: 1px solid #eef0f2;
+      cursor: pointer;
+    }
+
+    .alert-option:last-child {
+      border-bottom: 0;
+    }
+
+    .alert-option input {
+      width: 21px;
+      height: 21px;
+      margin: 1px 0 0;
+      flex: 0 0 auto;
+    }
+
+    .alert-label {
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .global-card h2 {
+      margin: 0 0 7px;
+      font-size: 18px;
+    }
+
+    .global-card p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .copy-select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 16px;
+      background: white;
+    }
+
+    .message {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 9px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .message.success {
+      display: block;
+      background: var(--light-green);
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+
+    .message.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .message.info {
+      display: block;
+      background: var(--light-blue);
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+    }
+
+    .ios-help {
+      display: none;
+    }
+
+    .ios-help.show {
+      display: block;
+    }
+
+    .ios-help ol {
+      margin: 8px 0 0;
+      padding-left: 22px;
+    }
+
+    .ios-help li {
+      margin: 7px 0;
+      line-height: 1.4;
+    }
+
+    .footer {
+      color: var(--muted);
+      text-align: center;
+      font-size: 12px;
+      margin-top: 22px;
+    }
+
+    @media (max-width: 480px) {
+      .page {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      .header {
+        border-radius: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="page">
+
+  <div class="header">
+    <h1>Kasselmann Call Alerts</h1>
+
+    <p>
+      Choose exactly which phone-call alerts you want to receive
+      for each Kasselmann location.
+    </p>
+  </div>
+
+
+  <div class="status-card">
+
+    <div class="status-row">
+      <div id="statusDot" class="status-dot"></div>
+
+      <div>
+        <div id="statusText" class="status-text">
+          Checking notification status...
+        </div>
+
+        <div id="statusSubtext" class="status-subtext">
+          Please wait while Call Alerts loads.
+        </div>
+      </div>
+    </div>
+
+    <button
+      id="enableNotifications"
+      class="primary-button"
+      type="button"
+    >
+      Enable Push Notifications
+    </button>
+
+    <div id="statusMessage" class="message"></div>
+
+  </div>
+
+
+  <div id="iosHelp" class="help-card ios-help">
+
+    <strong>Using an iPhone?</strong>
+
+    <p>
+      Apple requires this Call Alerts page to be added to your
+      Home Screen before push notifications can be enabled.
+    </p>
+
+    <ol>
+      <li>Open this page on your iPhone.</li>
+      <li>Tap the Share button.</li>
+      <li>Tap <strong>Add to Home Screen</strong>.</li>
+      <li>Open <strong>Kasselmann Call Alerts</strong> from your Home Screen.</li>
+      <li>Tap <strong>Enable Push Notifications</strong>.</li>
+    </ol>
+
+  </div>
+
+
+  <div class="global-card">
+
+    <h2>Quick Setup</h2>
+
+    <p>
+      Set up one location first, then copy those alert choices
+      to every location if you want the same settings everywhere.
+    </p>
+
+    <select
+      id="copySource"
+      class="copy-select"
+      aria-label="Location to copy"
+    >
+      <option value="">Choose a location to copy...</option>
+    </select>
+
+    <button
+      id="copyToAll"
+      class="secondary-button"
+      type="button"
+    >
+      Copy This Location's Alerts to All Locations
+    </button>
+
+  </div>
+
+
+  <div class="section-title">
+    Alert Preferences
+  </div>
+
+  <div class="section-description">
+    Open each location and select the call types you want from that location.
+    Each location can have completely different settings.
+  </div>
+
+
+  <div id="locationsContainer"></div>
+
+
+  <button
+    id="savePreferences"
+    class="save-button"
+    type="button"
+  >
+    Save Alert Preferences
+  </button>
+
+  <div id="saveMessage" class="message"></div>
+
+
+  <div class="footer">
+    Kasselmann Family McDonald's
+  </div>
+
+</div>
+
+
+<script>
+  const ONESIGNAL_APP_ID =
+    "ada45876-1d7f-4143-ac50-7f8b719d4ca3";
+
+
+  const LOCATIONS = [
+    "Office",
+    "LaGrange",
+    "Pendleton",
+    "Madison",
+    "Eminence",
+    "Clarksville",
+    "Veterans Parkway",
+    "Hanover",
+    "Buckner"
+  ];
+
+
+  const ALERT_TYPES = [
+    {
+      id: "customer_complaint",
+      label: "Customer Complaint"
+    },
+    {
+      id: "food_safety",
+      label: "Food Safety"
+    },
+    {
+      id: "vendor_service",
+      label: "Vendor - Service Request"
+    },
+    {
+      id: "vendor_invoice",
+      label: "Vendor - Unpaid Invoice/Payment"
+    },
+    {
+      id: "vendor_other",
+      label: "Vendor - Other"
+    },
+    {
+      id: "donation",
+      label: "Donation Request"
+    },
+    {
+      id: "loan",
+      label: "Loan Request"
+    },
+    {
+      id: "employment",
+      label: "Employment"
+    },
+    {
+      id: "legal",
+      label: "Legal / Attorney"
+    },
+    {
+      id: "regulatory",
+      label: "Regulatory"
+    },
+    {
+      id: "media",
+      label: "Media Inquiry"
+    },
+    {
+      id: "general_message",
+      label: "General Message"
+    },
+    {
+      id: "emergency",
+      label: "Emergency"
+    }
+  ];
+
+
+  let oneSignalReady = false;
+
+
+  function slugify(value) {
+    return value
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+
+  function preferenceTag(location, alertId) {
+    return (
+      "call_" +
+      slugify(location) +
+      "_" +
+      alertId
+    );
+  }
+
+
+  function createLocationCards() {
+
+    const container =
+      document.getElementById("locationsContainer");
+
+    const copySource =
+      document.getElementById("copySource");
+
+
+    LOCATIONS.forEach(function(location, index) {
+
+      const locationSlug =
+        slugify(location);
+
+
+      const option =
+        document.createElement("option");
+
+      option.value = location;
+      option.textContent = location;
+
+      copySource.appendChild(option);
+
+
+      const card =
+        document.createElement("div");
+
+      card.className = "location-card";
+
+      if (index === 0) {
+        card.classList.add("open");
+      }
+
+
+      const header =
+        document.createElement("button");
+
+      header.type = "button";
+      header.className = "location-header";
+
+      header.innerHTML = `
+        <div>
+          <span class="location-name">${location}</span>
+          <span
+            class="location-count"
+            id="count_${locationSlug}"
+          >
+            No alerts selected
+          </span>
+        </div>
+
+        <span class="chevron">⌄</span>
+      `;
+
+
+      header.addEventListener(
+        "click",
+        function() {
+          card.classList.toggle("open");
+        }
+      );
+
+
+      const body =
+        document.createElement("div");
+
+      body.className = "location-body";
+
+
+      const selectActions =
+        document.createElement("div");
+
+      selectActions.className = "select-actions";
+
+
+      const selectAllButton =
+        document.createElement("button");
+
+      selectAllButton.type = "button";
+      selectAllButton.className = "small-button";
+      selectAllButton.textContent = "Select All";
+
+      selectAllButton.addEventListener(
+        "click",
+        function() {
+          setLocationAlerts(location, true);
+        }
+      );
+
+
+      const clearButton =
+        document.createElement("button");
+
+      clearButton.type = "button";
+      clearButton.className = "small-button";
+      clearButton.textContent = "Clear";
+
+      clearButton.addEventListener(
+        "click",
+        function() {
+          setLocationAlerts(location, false);
+        }
+      );
+
+
+      selectActions.appendChild(
+        selectAllButton
+      );
+
+      selectActions.appendChild(
+        clearButton
+      );
+
+      body.appendChild(
+        selectActions
+      );
+
+
+      ALERT_TYPES.forEach(
+        function(alert) {
+
+          const label =
+            document.createElement("label");
+
+          label.className =
+            "alert-option";
+
+
+          const checkbox =
+            document.createElement("input");
+
+          checkbox.type = "checkbox";
+
+          checkbox.dataset.location =
+            location;
+
+          checkbox.dataset.alert =
+            alert.id;
+
+          checkbox.id =
+            "pref_" +
+            locationSlug +
+            "_" +
+            alert.id;
+
+
+          checkbox.addEventListener(
+            "change",
+            function() {
+              updateLocationCount(location);
+            }
+          );
+
+
+          const text =
+            document.createElement("span");
+
+          text.className =
+            "alert-label";
+
+          text.textContent =
+            alert.label;
+
+
+          label.appendChild(
+            checkbox
+          );
+
+          label.appendChild(
+            text
+          );
+
+          body.appendChild(
+            label
+          );
+        }
+      );
+
+
+      card.appendChild(
+        header
+      );
+
+      card.appendChild(
+        body
+      );
+
+      container.appendChild(
+        card
+      );
+
+    });
+  }
+
+
+  function setLocationAlerts(
+    location,
+    checked
+  ) {
+
+    const checkboxes =
+      document.querySelectorAll(
+        'input[data-location="' +
+        location +
+        '"]'
+      );
+
+
+    checkboxes.forEach(
+      function(box) {
+        box.checked = checked;
+      }
+    );
+
+
+    updateLocationCount(
+      location
+    );
+  }
+
+
+  function updateLocationCount(
+    location
+  ) {
+
+    const locationSlug =
+      slugify(location);
+
+
+    const checkboxes =
+      Array.from(
+        document.querySelectorAll(
+          'input[data-location="' +
+          location +
+          '"]'
+        )
+      );
+
+
+    const selected =
+      checkboxes.filter(
+        function(box) {
+          return box.checked;
+        }
+      ).length;
+
+
+    const count =
+      document.getElementById(
+        "count_" + locationSlug
+      );
+
+
+    if (selected === 0) {
+
+      count.textContent =
+        "No alerts selected";
+
+    } else if (
+      selected === ALERT_TYPES.length
+    ) {
+
+      count.textContent =
+        "All alerts selected";
+
+    } else {
+
+      count.textContent =
+        selected +
+        " alert" +
+        (selected === 1 ? "" : "s") +
+        " selected";
+    }
+  }
+
+
+  function copyLocationToAll() {
+
+    const sourceLocation =
+      document
+        .getElementById(
+          "copySource"
+        )
+        .value;
+
+
+    if (!sourceLocation) {
+
+      showSaveMessage(
+        "Choose a location to copy first.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    const sourceValues = {};
+
+
+    ALERT_TYPES.forEach(
+      function(alert) {
+
+        const source =
+          document.getElementById(
+            "pref_" +
+            slugify(sourceLocation) +
+            "_" +
+            alert.id
+          );
+
+
+        sourceValues[
+          alert.id
+        ] = source.checked;
+      }
+    );
+
+
+    LOCATIONS.forEach(
+      function(location) {
+
+        ALERT_TYPES.forEach(
+          function(alert) {
+
+            const target =
+              document.getElementById(
+                "pref_" +
+                slugify(location) +
+                "_" +
+                alert.id
+              );
+
+
+            target.checked =
+              sourceValues[
+                alert.id
+              ];
+          }
+        );
+
+
+        updateLocationCount(
+          location
+        );
+      }
+    );
+
+
+    showSaveMessage(
+      "Copied " +
+      sourceLocation +
+      " alert choices to all locations. Tap Save Alert Preferences to finish.",
+      "info"
+    );
+  }
+
+
+  function showStatusMessage(
+    message,
+    type
+  ) {
+
+    const el =
+      document.getElementById(
+        "statusMessage"
+      );
+
+    el.textContent = message;
+
+    el.className =
+      "message " + type;
+  }
+
+
+  function showSaveMessage(
+    message,
+    type
+  ) {
+
+    const el =
+      document.getElementById(
+        "saveMessage"
+      );
+
+    el.textContent = message;
+
+    el.className =
+      "message " + type;
+  }
+
+
+  function isIOS() {
+
+    return /iPhone|iPad|iPod/i.test(
+      navigator.userAgent
+    );
+  }
+
+
+  function isStandalone() {
+
+    return (
+      window.matchMedia(
+        "(display-mode: standalone)"
+      ).matches ||
+      window.navigator.standalone === true
+    );
+  }
+
+
+  function updateIOSHelp() {
+
+    const box =
+      document.getElementById(
+        "iosHelp"
+      );
+
+
+    if (
+      isIOS() &&
+      !isStandalone()
+    ) {
+
+      box.classList.add(
+        "show"
+      );
+
+    } else {
+
+      box.classList.remove(
+        "show"
+      );
+    }
+  }
+
+
+  function updatePushStatus(
+    optedIn
+  ) {
+
+    const dot =
+      document.getElementById(
+        "statusDot"
+      );
+
+    const text =
+      document.getElementById(
+        "statusText"
+      );
+
+    const subtext =
+      document.getElementById(
+        "statusSubtext"
+      );
+
+    const button =
+      document.getElementById(
+        "enableNotifications"
+      );
+
+
+    if (optedIn) {
+
+      dot.className =
+        "status-dot on";
+
+      text.textContent =
+        "Push Notifications Enabled";
+
+      subtext.textContent =
+        "This device can receive Kasselmann Call Alerts.";
+
+      button.textContent =
+        "Notifications Enabled";
+
+      button.disabled = true;
+
+    } else {
+
+      dot.className =
+        "status-dot off";
+
+      text.textContent =
+        "Push Notifications Not Enabled";
+
+      subtext.textContent =
+        "Enable notifications so this device can receive the alerts selected below.";
+
+      button.textContent =
+        "Enable Push Notifications";
+
+      button.disabled = false;
+    }
+  }
+
+
+  async function enableNotifications() {
+
+    if (!oneSignalReady) {
+
+      showStatusMessage(
+        "OneSignal is still loading. Please wait a few seconds and try again.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (
+      isIOS() &&
+      !isStandalone()
+    ) {
+
+      showStatusMessage(
+        "On iPhone, add Kasselmann Call Alerts to your Home Screen first, then open it from the Home Screen and enable notifications.",
+        "info"
+      );
+
+      return;
+    }
+
+
+    try {
+
+      window.OneSignalDeferred.push(
+        async function(OneSignal) {
+
+          await OneSignal.Notifications.requestPermission();
+
+
+          const optedIn =
+            OneSignal.User
+              .PushSubscription
+              .optedIn;
+
+
+          updatePushStatus(
+            optedIn
+          );
+
+
+          if (optedIn) {
+
+            showStatusMessage(
+              "Push notifications are enabled. Now choose your alert preferences and tap Save Alert Preferences.",
+              "success"
+            );
+
+          } else {
+
+            showStatusMessage(
+              "Notification permission was not enabled. Check your browser or device notification settings and try again.",
+              "error"
+            );
+          }
+        }
+      );
+
+    } catch (error) {
+
+      showStatusMessage(
+        "Unable to enable notifications: " +
+        error.message,
+        "error"
+      );
+    }
+  }
+
+
+  function collectPreferenceTags() {
+
+    const tags = {};
+
+
+    LOCATIONS.forEach(
+      function(location) {
+
+        ALERT_TYPES.forEach(
+          function(alert) {
+
+            const checkbox =
+              document.getElementById(
+                "pref_" +
+                slugify(location) +
+                "_" +
+                alert.id
+              );
+
+
+            tags[
+              preferenceTag(
+                location,
+                alert.id
+              )
+            ] =
+              checkbox.checked
+                ? "1"
+                : "0";
+          }
+        );
+      }
+    );
+
+
+    tags.call_alerts_enabled =
+      "1";
+
+
+    return tags;
+  }
+
+
+  async function savePreferences() {
+
+    showSaveMessage(
+      "Saving your alert preferences...",
+      "info"
+    );
+
+
+    if (!oneSignalReady) {
+
+      showSaveMessage(
+        "OneSignal is still loading. Please wait a few seconds and try again.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    try {
+
+      window.OneSignalDeferred.push(
+        async function(OneSignal) {
+
+          const optedIn =
+            OneSignal.User
+              .PushSubscription
+              .optedIn;
+
+
+          if (!optedIn) {
+
+            showSaveMessage(
+              "Enable push notifications first, then save your alert preferences.",
+              "error"
+            );
+
+            return;
+          }
+
+
+          const tags =
+            collectPreferenceTags();
+
+
+          await OneSignal.User.addTags(
+            tags
+          );
+
+
+          showSaveMessage(
+            "Your Kasselmann Call Alert preferences were saved successfully.",
+            "success"
+          );
+        }
+      );
+
+    } catch (error) {
+
+      showSaveMessage(
+        "Unable to save preferences: " +
+        error.message,
+        "error"
+      );
+    }
+  }
+
+
+  function loadExistingPreferences(
+    OneSignal
+  ) {
+
+    try {
+
+      const tags =
+        OneSignal.User.getTags();
+
+
+      if (!tags) {
+        return;
+      }
+
+
+      LOCATIONS.forEach(
+        function(location) {
+
+          ALERT_TYPES.forEach(
+            function(alert) {
+
+              const tag =
+                preferenceTag(
+                  location,
+                  alert.id
+                );
+
+
+              const checkbox =
+                document.getElementById(
+                  "pref_" +
+                  slugify(location) +
+                  "_" +
+                  alert.id
+                );
+
+
+              checkbox.checked =
+                String(tags[tag]) ===
+                "1";
+            }
+          );
+
+
+          updateLocationCount(
+            location
+          );
+        }
+      );
+
+    } catch (error) {
+
+      console.log(
+        "Could not load saved preferences:",
+        error
+      );
+    }
+  }
+
+
+  document
+    .getElementById(
+      "enableNotifications"
+    )
+    .addEventListener(
+      "click",
+      enableNotifications
+    );
+
+
+  document
+    .getElementById(
+      "savePreferences"
+    )
+    .addEventListener(
+      "click",
+      savePreferences
+    );
+
+
+  document
+    .getElementById(
+      "copyToAll"
+    )
+    .addEventListener(
+      "click",
+      copyLocationToAll
+    );
+
+
+  createLocationCards();
+
+  updateIOSHelp();
+
+
+  window.OneSignalDeferred =
+    window.OneSignalDeferred || [];
+
+
+  window.OneSignalDeferred.push(
+    async function(OneSignal) {
+
+      try {
+
+        await OneSignal.init({
+
+          appId:
+            ONESIGNAL_APP_ID,
+
+          serviceWorkerPath:
+            "OneSignalSDKWorker.js",
+
+          serviceWorkerParam: {
+            scope:
+              "/kasselmann-call-alerts/"
+          },
+
+          notifyButton: {
+            enable: false
+          }
+        });
+
+
+        oneSignalReady = true;
+
+
+        const optedIn =
+          OneSignal.User
+            .PushSubscription
+            .optedIn;
+
+
+        updatePushStatus(
+          optedIn
+        );
+
+
+        loadExistingPreferences(
+          OneSignal
+        );
+
+
+        OneSignal.User
+          .PushSubscription
+          .addEventListener(
+            "change",
+            function(event) {
+
+              updatePushStatus(
+                event.current.optedIn
+              );
+            }
+          );
+
+
+      } catch (error) {
+
+        console.error(
+          "OneSignal initialization error:",
+          error
+        );
+
+
+        showStatusMessage(
+          "Call Alerts could not connect to the notification service. Please refresh the page.",
+          "error"
+        );
+      }
+    }
+  );
+</script>
+
+</body>
+</html>
