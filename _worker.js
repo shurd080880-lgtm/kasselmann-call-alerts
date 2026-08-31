@@ -50,8 +50,6 @@ export default {
       return json({ ok: false, error: "OneSignal secrets are not configured" }, 500);
     }
 
-    // Optional protection. Once ALERT_API_KEY is configured in Cloudflare,
-    // Vapi must send the same value in the x-alert-key request header.
     if (env.ALERT_API_KEY) {
       const supplied = request.headers.get("x-alert-key") || "";
       if (supplied !== env.ALERT_API_KEY) {
@@ -127,6 +125,21 @@ export default {
         ok: false,
         error: "OneSignal rejected the notification",
         status: oneSignalResponse.status,
+        tagKey,
+        oneSignal: responseData
+      }, 502);
+    }
+
+    // OneSignal can return HTTP 200 with no notification ID when the
+    // request was accepted but no eligible subscription matched.
+    if (!responseData.id) {
+      return json({
+        ok: false,
+        error: "OneSignal did not create a notification",
+        status: oneSignalResponse.status,
+        tagKey,
+        notificationId: null,
+        recipients: responseData.recipients ?? null,
         oneSignal: responseData
       }, 502);
     }
@@ -134,8 +147,9 @@ export default {
     return json({
       ok: true,
       tagKey,
-      notificationId: responseData.id || null,
-      recipients: responseData.recipients ?? null
+      notificationId: responseData.id,
+      recipients: responseData.recipients ?? null,
+      oneSignal: responseData
     });
   }
 };
