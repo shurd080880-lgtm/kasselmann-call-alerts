@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Kasselmann Call Alerts Diagnostics</title>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+  </script>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f4f6; color: #111827; font-family: Arial, Helvetica, sans-serif; }
+    .page { max-width: 760px; margin: 0 auto; padding: 20px 14px 50px; }
+    .header { background: #111827; color: white; border-radius: 16px; padding: 22px 18px; margin-bottom: 16px; }
+    .header h1 { margin: 0 0 7px; font-size: 24px; }
+    .header p { margin: 0; color: #e5e7eb; line-height: 1.45; }
+    .card { background: white; border: 1px solid #d1d5db; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .row { margin: 8px 0; line-height: 1.45; word-break: break-word; }
+    .label { font-weight: 700; }
+    .good { color: #15803d; font-weight: 700; }
+    .bad { color: #b91c1c; font-weight: 700; }
+    button { width: 100%; min-height: 48px; border: 0; border-radius: 10px; background: #111827; color: white; font-size: 16px; font-weight: 700; padding: 12px; margin-top: 10px; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>Call Alerts Diagnostics</h1>
+    <p>This page shows the actual OneSignal subscription and tags stored for this device.</p>
+  </div>
+
+  <div class="card">
+    <div class="row"><span class="label">Status:</span> <span id="status">Loading OneSignal...</span></div>
+    <div class="row"><span class="label">Push opted in:</span> <span id="optedIn">Checking...</span></div>
+    <div class="row"><span class="label">Subscription ID:</span> <span id="subscriptionId">Checking...</span></div>
+    <div class="row"><span class="label">OneSignal User ID:</span> <span id="userId">Checking...</span></div>
+    <div class="row"><span class="label">Required donation tag:</span> <span>call_office_donation_request = 1</span></div>
+    <div class="row"><span class="label">Donation tag present:</span> <span id="donationMatch">Checking...</span></div>
+    <button id="refresh" type="button">Refresh Diagnostics</button>
+  </div>
+
+  <div class="card">
+    <div class="label">Actual OneSignal tags on this device</div>
+    <pre id="tags">Loading...</pre>
+  </div>
+
+  <div class="card">
+    <div class="label">Diagnostic errors</div>
+    <pre id="errors">None</pre>
+  </div>
+</div>
+
+<script>
+  const ONESIGNAL_APP_ID = "ada45876-1d7f-4143-ac50-7f8b719d4ca3";
+  let OneSignalRef = null;
+
+  function setText(id, value) {
+    document.getElementById(id).textContent = value == null || value === "" ? "Not available" : String(value);
+  }
+
+  function addError(message) {
+    const el = document.getElementById("errors");
+    if (el.textContent === "None") el.textContent = "";
+    el.textContent += (el.textContent ? "\n" : "") + message;
+  }
+
+  async function refreshDiagnostics() {
+    if (!OneSignalRef) {
+      setText("status", "OneSignal is not ready yet");
+      return;
+    }
+
+    try {
+      const optedIn = !!OneSignalRef.User.PushSubscription.optedIn;
+      setText("optedIn", optedIn ? "YES" : "NO");
+      document.getElementById("optedIn").className = optedIn ? "good" : "bad";
+    } catch (e) {
+      addError("Push optedIn: " + (e.message || e));
+    }
+
+    try {
+      setText("subscriptionId", OneSignalRef.User.PushSubscription.id || "Not available");
+    } catch (e) {
+      addError("Subscription ID: " + (e.message || e));
+    }
+
+    try {
+      setText("userId", OneSignalRef.User.onesignalId || "Not available");
+    } catch (e) {
+      addError("OneSignal User ID: " + (e.message || e));
+    }
+
+    try {
+      const tags = await OneSignalRef.User.getTags();
+      document.getElementById("tags").textContent = JSON.stringify(tags || {}, null, 2);
+      const matched = tags && String(tags.call_office_donation_request) === "1";
+      setText("donationMatch", matched ? "YES" : "NO");
+      document.getElementById("donationMatch").className = matched ? "good" : "bad";
+    } catch (e) {
+      document.getElementById("tags").textContent = "Unable to read tags";
+      setText("donationMatch", "ERROR");
+      document.getElementById("donationMatch").className = "bad";
+      addError("Tags: " + (e.message || e));
+    }
+
+    setText("status", "Diagnostics loaded");
+  }
+
+  document.getElementById("refresh").addEventListener("click", refreshDiagnostics);
+
+  window.OneSignalDeferred.push(async function(OneSignal) {
+    try {
+      await OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+        serviceWorkerParam: { scope: "/" },
+        notifyButton: { enable: false }
+      });
+      OneSignalRef = OneSignal;
+      await refreshDiagnostics();
+    } catch (e) {
+      setText("status", "OneSignal initialization failed");
+      document.getElementById("status").className = "bad";
+      addError("Initialization: " + (e.message || e));
+    }
+  });
+</script>
+</body>
+</html>
