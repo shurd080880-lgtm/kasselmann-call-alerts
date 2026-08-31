@@ -1,0 +1,11 @@
+{
+  "name": "Kasselmann Call Alerts",
+  "short_name": "Call Alerts",
+  "description": "Kasselmann Family McDonald's phone call push alerts",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#111827"
+}
