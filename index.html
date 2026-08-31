@@ -28,9 +28,7 @@
       --light-blue: #eff6ff;
       --light-green: #f0fdf4;
     }
-
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       background: var(--bg);
@@ -38,14 +36,12 @@
       font-family: Arial, Helvetica, sans-serif;
       -webkit-font-smoothing: antialiased;
     }
-
     .page {
       width: 100%;
       max-width: 760px;
       margin: 0 auto;
       padding: 20px 14px 50px;
     }
-
     .header {
       background: var(--dark);
       color: white;
@@ -53,71 +49,47 @@
       padding: 22px 18px;
       margin-bottom: 16px;
     }
-
     .header h1 { margin: 0 0 7px; font-size: 25px; line-height: 1.2; }
     .header p { margin: 0; line-height: 1.45; color: #e5e7eb; font-size: 15px; }
-
-    .status-card, .help-card, .global-card {
+    .status-card, .help-card, .global-card, .diagnostic-card {
       background: var(--card);
       border-radius: 14px;
       border: 1px solid var(--border);
       padding: 16px;
       margin-bottom: 14px;
     }
-
     .status-row { display: flex; align-items: center; gap: 10px; }
     .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #9ca3af; flex: 0 0 auto; }
     .status-dot.on { background: var(--green); }
     .status-dot.off { background: var(--red); }
     .status-text { font-size: 15px; font-weight: 700; }
     .status-subtext { font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
-
     .primary-button, .secondary-button, .save-button {
-      width: 100%;
-      min-height: 48px;
-      border-radius: 10px;
-      border: 0;
-      padding: 12px 15px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 12px;
+      width: 100%; min-height: 48px; border-radius: 10px; border: 0;
+      padding: 12px 15px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px;
     }
-
     .primary-button, .save-button { background: var(--dark); color: white; }
     .secondary-button { background: #e5e7eb; color: var(--text); }
     button:disabled { opacity: 0.55; cursor: not-allowed; }
-
     .section-title { font-size: 18px; font-weight: 700; margin: 22px 3px 10px; }
     .section-description { margin: -4px 3px 12px; color: var(--muted); font-size: 14px; line-height: 1.45; }
-
-    .location-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-
+    .location-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
     .location-header {
       width: 100%; border: 0; background: white; display: flex; align-items: center;
       justify-content: space-between; padding: 16px; min-height: 58px; cursor: pointer;
       color: var(--text); text-align: left;
     }
-
     .location-name { font-weight: 700; font-size: 17px; }
     .location-count { display: block; margin-top: 3px; font-size: 12px; font-weight: 400; color: var(--muted); }
     .chevron { font-size: 20px; transition: transform 0.2s ease; }
     .location-card.open .chevron { transform: rotate(180deg); }
     .location-body { display: none; border-top: 1px solid var(--border); padding: 12px 16px 16px; }
     .location-card.open .location-body { display: block; }
-
     .select-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     .small-button {
       border: 1px solid var(--border); background: #f9fafb; color: var(--text);
       border-radius: 8px; min-height: 40px; padding: 8px 12px; font-weight: 700; cursor: pointer;
     }
-
     .alert-option {
       display: flex; align-items: flex-start; gap: 11px; padding: 11px 0;
       border-bottom: 1px solid #eef0f2; cursor: pointer;
@@ -125,25 +97,30 @@
     .alert-option:last-child { border-bottom: 0; }
     .alert-option input { width: 21px; height: 21px; margin: 1px 0 0; flex: 0 0 auto; }
     .alert-label { font-size: 15px; line-height: 1.35; }
-
-    .global-card h2 { margin: 0 0 7px; font-size: 18px; }
-    .global-card p { margin: 0 0 12px; color: var(--muted); line-height: 1.45; font-size: 14px; }
+    .global-card h2, .diagnostic-card h2 { margin: 0 0 7px; font-size: 18px; }
+    .global-card p, .diagnostic-card p { margin: 0 0 12px; color: var(--muted); line-height: 1.45; font-size: 14px; }
     .copy-select {
       width: 100%; min-height: 46px; border: 1px solid var(--border); border-radius: 9px;
       padding: 8px 10px; font-size: 16px; background: white;
     }
-
     .message { display: none; margin-top: 12px; padding: 12px; border-radius: 9px; font-size: 14px; line-height: 1.4; }
     .message.success { display: block; background: var(--light-green); border: 1px solid #86efac; color: #166534; }
     .message.error { display: block; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
     .message.info { display: block; background: var(--light-blue); border: 1px solid #bfdbfe; color: #1e40af; }
-
     .ios-help { display: none; }
     .ios-help.show { display: block; }
     .ios-help ol { margin: 8px 0 0; padding-left: 22px; }
     .ios-help li { margin: 7px 0; line-height: 1.4; }
+    .diag-grid { display: grid; gap: 8px; font-size: 14px; }
+    .diag-row { line-height: 1.45; overflow-wrap: anywhere; }
+    .diag-label { font-weight: 700; }
+    .diag-ok { color: var(--green); font-weight: 700; }
+    .diag-bad { color: var(--red); font-weight: 700; }
+    .diag-tags {
+      margin-top: 12px; padding: 12px; border-radius: 9px; border: 1px solid var(--border);
+      background: #f9fafb; white-space: pre-wrap; overflow-wrap: anywhere; font-family: monospace; font-size: 12px;
+    }
     .footer { color: var(--muted); text-align: center; font-size: 12px; margin-top: 22px; }
-
     @media (max-width: 480px) {
       .page { padding-left: 10px; padding-right: 10px; }
       .header { border-radius: 13px; }
@@ -181,6 +158,20 @@
     </ol>
   </div>
 
+  <div class="diagnostic-card">
+    <h2>Device Diagnostics</h2>
+    <p>This reads the same OneSignal session used by this Call Alerts page.</p>
+    <div class="diag-grid">
+      <div class="diag-row"><span class="diag-label">Push opted in:</span> <span id="diagOpted">Checking...</span></div>
+      <div class="diag-row"><span class="diag-label">Subscription ID:</span> <span id="diagSubscription">Checking...</span></div>
+      <div class="diag-row"><span class="diag-label">OneSignal User ID:</span> <span id="diagUser">Checking...</span></div>
+      <div class="diag-row"><span class="diag-label">Required donation tag:</span> call_office_donation_request = 1</div>
+      <div class="diag-row"><span class="diag-label">Donation tag present:</span> <span id="diagDonation">Checking...</span></div>
+    </div>
+    <div id="diagTags" class="diag-tags">Loading OneSignal tags...</div>
+    <button id="refreshDiagnostics" class="secondary-button" type="button">Refresh Device Diagnostics</button>
+  </div>
+
   <div class="global-card">
     <h2>Quick Setup</h2>
     <p>Set up one location first, then copy those alert choices to every location if you want the same settings everywhere.</p>
@@ -194,29 +185,14 @@
   <div class="section-description">Open each location and select the call types you want from that location. Each location can have completely different settings.</div>
 
   <div id="locationsContainer"></div>
-
   <button id="savePreferences" class="save-button" type="button">Save Alert Preferences</button>
   <div id="saveMessage" class="message"></div>
-
   <div class="footer">Kasselmann Family McDonald's</div>
 </div>
 
 <script>
   const ONESIGNAL_APP_ID = "ada45876-1d7f-4143-ac50-7f8b719d4ca3";
-
-  const LOCATIONS = [
-    "Office",
-    "LaGrange",
-    "Pendleton",
-    "Madison",
-    "Eminence",
-    "Clarksville",
-    "Veterans Parkway",
-    "Hanover",
-    "Buckner"
-  ];
-
-  // IDs must exactly match the slug generated by the Cloudflare Worker.
+  const LOCATIONS = ["Office", "LaGrange", "Pendleton", "Madison", "Eminence", "Clarksville", "Veterans Parkway", "Hanover", "Buckner"];
   const ALERT_TYPES = [
     { id: "customer_complaint", label: "Customer Complaint" },
     { id: "food_safety", label: "Food Safety" },
@@ -237,51 +213,30 @@
   let oneSignalInstance = null;
 
   function slugify(value) {
-    return String(value || "")
-      .trim()
-      .toLowerCase()
-      .replace(/&/g, "and")
-      .replace(/['’]/g, "")
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
+    return String(value || "").trim().toLowerCase().replace(/&/g, "and").replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   }
-
-  function preferenceTag(location, alertId) {
-    return "call_" + slugify(location) + "_" + alertId;
-  }
-
+  function preferenceTag(location, alertId) { return "call_" + slugify(location) + "_" + alertId; }
   function showStatusMessage(message, type) {
     const el = document.getElementById("statusMessage");
     el.textContent = message;
     el.className = "message " + type;
   }
-
   function showSaveMessage(message, type) {
     const el = document.getElementById("saveMessage");
     el.textContent = message;
     el.className = "message " + type;
   }
-
-  function isIOS() {
-    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  }
-
-  function isStandalone() {
-    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-  }
-
+  function isIOS() { return /iPhone|iPad|iPod/i.test(navigator.userAgent); }
+  function isStandalone() { return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true; }
   function updateIOSHelp() {
     const box = document.getElementById("iosHelp");
-    if (isIOS() && !isStandalone()) box.classList.add("show");
-    else box.classList.remove("show");
+    if (isIOS() && !isStandalone()) box.classList.add("show"); else box.classList.remove("show");
   }
-
   function updatePushStatus(optedIn) {
     const dot = document.getElementById("statusDot");
     const text = document.getElementById("statusText");
     const subtext = document.getElementById("statusSubtext");
     const button = document.getElementById("enableNotifications");
-
     if (optedIn) {
       dot.className = "status-dot on";
       text.textContent = "Push Notifications Enabled";
@@ -297,13 +252,61 @@
     }
   }
 
+  async function getActualTags() {
+    if (!oneSignalReady || !oneSignalInstance) return {};
+    try {
+      const result = oneSignalInstance.User.getTags();
+      return (result && typeof result.then === "function") ? await result : (result || {});
+    } catch (error) {
+      console.error("Unable to read OneSignal tags", error);
+      return {};
+    }
+  }
+
+  async function refreshDiagnostics() {
+    const optedEl = document.getElementById("diagOpted");
+    const subEl = document.getElementById("diagSubscription");
+    const userEl = document.getElementById("diagUser");
+    const donationEl = document.getElementById("diagDonation");
+    const tagsEl = document.getElementById("diagTags");
+
+    if (!oneSignalReady || !oneSignalInstance) {
+      optedEl.textContent = "OneSignal not ready";
+      optedEl.className = "diag-bad";
+      subEl.textContent = "Not available";
+      userEl.textContent = "Not available";
+      donationEl.textContent = "NO";
+      donationEl.className = "diag-bad";
+      tagsEl.textContent = "{}";
+      return;
+    }
+
+    try {
+      const optedIn = !!oneSignalInstance.User.PushSubscription.optedIn;
+      const subscriptionId = oneSignalInstance.User.PushSubscription.id || "Not available";
+      const userId = oneSignalInstance.User.onesignalId || "Not available";
+      const tags = await getActualTags();
+      const donationPresent = String(tags.call_office_donation_request) === "1";
+
+      optedEl.textContent = optedIn ? "YES" : "NO";
+      optedEl.className = optedIn ? "diag-ok" : "diag-bad";
+      subEl.textContent = subscriptionId;
+      userEl.textContent = userId;
+      donationEl.textContent = donationPresent ? "YES" : "NO";
+      donationEl.className = donationPresent ? "diag-ok" : "diag-bad";
+      tagsEl.textContent = JSON.stringify(tags, null, 2);
+    } catch (error) {
+      optedEl.textContent = "Error";
+      optedEl.className = "diag-bad";
+      tagsEl.textContent = "Diagnostic error: " + (error && error.message ? error.message : String(error));
+    }
+  }
+
   function createLocationCards() {
     const container = document.getElementById("locationsContainer");
     const copySource = document.getElementById("copySource");
-
     LOCATIONS.forEach(function(location, index) {
       const locationSlug = slugify(location);
-
       const option = document.createElement("option");
       option.value = location;
       option.textContent = location;
@@ -311,7 +314,6 @@
 
       const card = document.createElement("div");
       card.className = "location-card" + (index === 0 ? " open" : "");
-
       const header = document.createElement("button");
       header.type = "button";
       header.className = "location-header";
@@ -320,22 +322,18 @@
 
       const body = document.createElement("div");
       body.className = "location-body";
-
       const selectActions = document.createElement("div");
       selectActions.className = "select-actions";
-
       const selectAllButton = document.createElement("button");
       selectAllButton.type = "button";
       selectAllButton.className = "small-button";
       selectAllButton.textContent = "Select All";
       selectAllButton.addEventListener("click", function() { setLocationAlerts(location, true); });
-
       const clearButton = document.createElement("button");
       clearButton.type = "button";
       clearButton.className = "small-button";
       clearButton.textContent = "Clear";
       clearButton.addEventListener("click", function() { setLocationAlerts(location, false); });
-
       selectActions.appendChild(selectAllButton);
       selectActions.appendChild(clearButton);
       body.appendChild(selectActions);
@@ -343,23 +341,19 @@
       ALERT_TYPES.forEach(function(alert) {
         const label = document.createElement("label");
         label.className = "alert-option";
-
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.dataset.location = location;
         checkbox.dataset.alert = alert.id;
         checkbox.id = "pref_" + locationSlug + "_" + alert.id;
         checkbox.addEventListener("change", function() { updateLocationCount(location); });
-
         const text = document.createElement("span");
         text.className = "alert-label";
         text.textContent = alert.label;
-
         label.appendChild(checkbox);
         label.appendChild(text);
         body.appendChild(label);
       });
-
       card.appendChild(header);
       card.appendChild(body);
       container.appendChild(card);
@@ -367,44 +361,35 @@
   }
 
   function setLocationAlerts(location, checked) {
-    document.querySelectorAll('input[data-location="' + location + '"]').forEach(function(box) {
-      box.checked = checked;
-    });
+    document.querySelectorAll('input[data-location="' + location + '"]').forEach(function(box) { box.checked = checked; });
     updateLocationCount(location);
   }
-
   function updateLocationCount(location) {
     const boxes = Array.from(document.querySelectorAll('input[data-location="' + location + '"]'));
     const selected = boxes.filter(function(box) { return box.checked; }).length;
     const count = document.getElementById("count_" + slugify(location));
-
     if (selected === 0) count.textContent = "No alerts selected";
     else if (selected === ALERT_TYPES.length) count.textContent = "All alerts selected";
     else count.textContent = selected + " alert" + (selected === 1 ? "" : "s") + " selected";
   }
-
   function copyLocationToAll() {
     const sourceLocation = document.getElementById("copySource").value;
     if (!sourceLocation) {
       showSaveMessage("Choose a location to copy first.", "error");
       return;
     }
-
     const sourceValues = {};
     ALERT_TYPES.forEach(function(alert) {
       sourceValues[alert.id] = document.getElementById("pref_" + slugify(sourceLocation) + "_" + alert.id).checked;
     });
-
     LOCATIONS.forEach(function(location) {
       ALERT_TYPES.forEach(function(alert) {
         document.getElementById("pref_" + slugify(location) + "_" + alert.id).checked = sourceValues[alert.id];
       });
       updateLocationCount(location);
     });
-
     showSaveMessage("Copied " + sourceLocation + " alert choices to all locations. Tap Save Alert Preferences to finish.", "info");
   }
-
   function collectPreferenceTags() {
     const tags = {};
     LOCATIONS.forEach(function(location) {
@@ -416,10 +401,10 @@
     tags.call_alerts_enabled = "1";
     return tags;
   }
-
-  function loadExistingPreferences(OneSignal) {
+  async function loadExistingPreferences(OneSignal) {
     try {
-      const tags = OneSignal.User.getTags() || {};
+      const result = OneSignal.User.getTags();
+      const tags = (result && typeof result.then === "function") ? await result : (result || {});
       LOCATIONS.forEach(function(location) {
         ALERT_TYPES.forEach(function(alert) {
           const tag = preferenceTag(location, alert.id);
@@ -438,28 +423,22 @@
       showStatusMessage("Notification service is still loading. Wait a few seconds and try again.", "error");
       return;
     }
-
     if (isIOS() && !isStandalone()) {
       showStatusMessage("On iPhone, add Kasselmann Call Alerts to your Home Screen first, then open it from the Home Screen and enable notifications.", "info");
       return;
     }
-
     try {
       const supported = await oneSignalInstance.Notifications.isPushSupported();
       if (!supported) {
         showStatusMessage("Push notifications are not supported in this browser or app mode.", "error");
         return;
       }
-
       await oneSignalInstance.Notifications.requestPermission();
       const optedIn = oneSignalInstance.User.PushSubscription.optedIn;
       updatePushStatus(optedIn);
-
-      if (optedIn) {
-        showStatusMessage("Push notifications are enabled. Choose your alert preferences and tap Save Alert Preferences.", "success");
-      } else {
-        showStatusMessage("Notification permission was not enabled. Check iPhone Settings > Notifications > Kasselmann Call Alerts and try again.", "error");
-      }
+      await refreshDiagnostics();
+      if (optedIn) showStatusMessage("Push notifications are enabled. Choose your alert preferences and tap Save Alert Preferences.", "success");
+      else showStatusMessage("Notification permission was not enabled. Check iPhone Settings > Notifications > Kasselmann Call Alerts and try again.", "error");
     } catch (error) {
       showStatusMessage("Unable to enable notifications: " + (error && error.message ? error.message : String(error)), "error");
     }
@@ -467,40 +446,50 @@
 
   async function savePreferences() {
     showSaveMessage("Saving your alert preferences...", "info");
-
     if (!oneSignalReady || !oneSignalInstance) {
       showSaveMessage("Notification service is still loading. Wait a few seconds and try again.", "error");
       return;
     }
-
     try {
       const optedIn = oneSignalInstance.User.PushSubscription.optedIn;
       if (!optedIn) {
         showSaveMessage("Enable push notifications first, then save your alert preferences.", "error");
+        await refreshDiagnostics();
         return;
       }
-
-      await oneSignalInstance.User.addTags(collectPreferenceTags());
-      showSaveMessage("Your Kasselmann Call Alert preferences were saved successfully.", "success");
+      const desiredTags = collectPreferenceTags();
+      await oneSignalInstance.User.addTags(desiredTags);
+      await new Promise(function(resolve) { setTimeout(resolve, 700); });
+      const actualTags = await getActualTags();
+      await refreshDiagnostics();
+      const donationWanted = desiredTags.call_office_donation_request === "1";
+      const donationSaved = String(actualTags.call_office_donation_request) === "1";
+      if (donationWanted && !donationSaved) {
+        showSaveMessage("Preferences were sent, but the Donation Request tag is still missing from this OneSignal device. See Device Diagnostics above.", "error");
+        return;
+      }
+      showSaveMessage("Your Kasselmann Call Alert preferences were saved successfully and verified on this device.", "success");
     } catch (error) {
       showSaveMessage("Unable to save preferences: " + (error && error.message ? error.message : String(error)), "error");
+      await refreshDiagnostics();
     }
   }
 
   document.getElementById("enableNotifications").addEventListener("click", enableNotifications);
   document.getElementById("savePreferences").addEventListener("click", savePreferences);
   document.getElementById("copyToAll").addEventListener("click", copyLocationToAll);
+  document.getElementById("refreshDiagnostics").addEventListener("click", refreshDiagnostics);
 
   createLocationCards();
   updateIOSHelp();
 
-  // If OneSignal never calls our deferred handler, show a useful error instead of hanging forever.
   const initTimeout = setTimeout(function() {
     if (!oneSignalReady) {
       document.getElementById("statusDot").className = "status-dot off";
       document.getElementById("statusText").textContent = "Push Notification Service Not Connected";
       document.getElementById("statusSubtext").textContent = "Close and reopen the Home Screen app. If this continues, the OneSignal site configuration needs to be checked.";
       showStatusMessage("OneSignal did not finish loading on this device.", "error");
+      refreshDiagnostics();
     }
   }, 10000);
 
@@ -512,16 +501,15 @@
         serviceWorkerParam: { scope: "/" },
         notifyButton: { enable: false }
       });
-
       oneSignalInstance = OneSignal;
       oneSignalReady = true;
       clearTimeout(initTimeout);
-
       updatePushStatus(OneSignal.User.PushSubscription.optedIn);
-      loadExistingPreferences(OneSignal);
-
-      OneSignal.User.PushSubscription.addEventListener("change", function(event) {
+      await loadExistingPreferences(OneSignal);
+      await refreshDiagnostics();
+      OneSignal.User.PushSubscription.addEventListener("change", async function(event) {
         updatePushStatus(event.current.optedIn);
+        await refreshDiagnostics();
       });
     } catch (error) {
       clearTimeout(initTimeout);
@@ -530,6 +518,7 @@
       document.getElementById("statusText").textContent = "Push Notification Setup Error";
       document.getElementById("statusSubtext").textContent = "The notification service could not initialize on this device.";
       showStatusMessage("Call Alerts could not connect to OneSignal: " + (error && error.message ? error.message : String(error)), "error");
+      refreshDiagnostics();
     }
   });
 </script>
