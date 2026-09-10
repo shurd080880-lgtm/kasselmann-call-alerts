@@ -32,6 +32,54 @@ async function parseResponse(response) {
   }
 }
 
+const LEGACY_TAGS = [
+  "call_alerts_enabled",
+  "registered_location",
+  "call_office_regulatory",
+  "call_office_media_inquiry",
+  "call_office_customer_complaint",
+  "call_office_food_safety",
+  "call_office_vendor_service_request",
+  "call_office_vendor_unpaid_invoice_payment",
+  "call_office_vendor_other",
+  "call_office_donation_request",
+  "call_office_loan_request",
+  "call_office_employment",
+  "call_office_legal_attorney",
+  "call_office_general_message",
+  "call_office_emergency"
+];
+
+const CALL_TYPE_BITS = {
+  "customer_complaint": 0,
+  "food_safety": 1,
+  "vendor_service_request": 2,
+  "vendor_unpaid_invoice_payment": 2,
+  "vendor_other": 2,
+  "donation_request": 3,
+  "loan_request": 4,
+  "employment": 5,
+  "legal_attorney": 6,
+  "general_message": 7,
+  "emergency": 8
+};
+
+function userEndpoint(env, externalId) {
+  return `https://api.onesignal.com/apps/${encodeURIComponent(env.ONESIGNAL_APP_ID)}/users/by/external_id/${encodeURIComponent(externalId)}`;
+}
+
+async function patchUserTags(env, externalId, tags) {
+  const response = await fetch(userEndpoint(env, externalId), {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      "authorization": `Key ${env.ONESIGNAL_API_KEY}`
+    },
+    body: JSON.stringify({ properties: { tags } })
+  });
+  return { response, data: await parseResponse(response) };
+}
+
 async function handleRegister(request, env) {
   if (!env.ONESIGNAL_APP_ID || !env.ONESIGNAL_API_KEY) {
     return json({ ok: false, error: "OneSignal secrets are not configured" }, 500);
@@ -52,63 +100,50 @@ async function handleRegister(request, env) {
   if (!externalId || !externalId.startsWith("kasselmann_device_")) {
     return json({ ok: false, error: "Invalid device external ID" }, 400);
   }
+  if (!tags) return json({ ok: false, error: "Tags are required" }, 400);
 
-  if (!tags) {
-    return json({ ok: false, error: "Tags are required" }, 400);
+  const allowedTags = {
+    registered_name: String(tags.registered_name || "").trim(),
+    registered_phone: String(tags.registered_phone || "").trim(),
+    registered_device_id: externalId,
+    alert_mask: String(tags.alert_mask || "0").trim(),
+    registered_at: String(tags.registered_at || new Date().toISOString()).trim()
+  };
+
+  if (!/^\d+$/.test(allowedTags.alert_mask) || Number(allowedTags.alert_mask) < 0 || Number(allowedTags.alert_mask) > 511) {
+    return json({ ok: false, error: "Invalid alert preference mask" }, 400);
   }
 
-  const allowedTags = {};
-  for (const [key, value] of Object.entries(tags)) {
-    if (
-      key === "call_alerts_enabled" ||
-      key === "registered_name" ||
-      key === "registered_phone" ||
-      key === "registered_device_id" ||
-      key === "registered_location" ||
-      key === "registered_at" ||
-      key.startsWith("call_office_")
-    ) {
-      allowedTags[key] = String(value ?? "");
-    }
-  }
-
-  const endpoint = `https://api.onesignal.com/apps/${encodeURIComponent(env.ONESIGNAL_APP_ID)}/users/by/external_id/${encodeURIComponent(externalId)}`;
-
-  let updateResponse;
   try {
-    updateResponse = await fetch(endpoint, {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json",
-        "authorization": `Key ${env.ONESIGNAL_API_KEY}`
-      },
-      body: JSON.stringify({
-        properties: {
-          tags: allowedTags
-        }
-      })
-    });
+    const cleanup = Object.fromEntries(LEGACY_TAGS.map(k => [k, ""]));
+    const cleanupResult = await patchUserTags(env, externalId, cleanup);
+    if (!cleanupResult.response.ok) {
+      return json({
+        ok: false,
+        error: "OneSignal rejected legacy tag cleanup",
+        status: cleanupResult.response.status,
+        oneSignal: cleanupResult.data
+      }, 502);
+    }
+
+    const updateResult = await patchUserTags(env, externalId, allowedTags);
+    if (!updateResult.response.ok) {
+      return json({
+        ok: false,
+        error: "OneSignal rejected compact tag update",
+        status: updateResult.response.status,
+        oneSignal: updateResult.data
+      }, 502);
+    }
   } catch (error) {
     return json({ ok: false, error: "Unable to reach OneSignal user API", detail: String(error) }, 502);
   }
 
-  const updateData = await parseResponse(updateResponse);
-  if (!updateResponse.ok) {
-    return json({
-      ok: false,
-      error: "OneSignal rejected the user tag update",
-      status: updateResponse.status,
-      oneSignal: updateData
-    }, 502);
-  }
-
   let verifyResponse;
   try {
-    verifyResponse = await fetch(endpoint, {
+    verifyResponse = await fetch(userEndpoint(env, externalId), {
       method: "GET",
-      headers: {
-        "authorization": `Key ${env.ONESIGNAL_API_KEY}`
-      }
+      headers: { "authorization": `Key ${env.ONESIGNAL_API_KEY}` }
     });
   } catch (error) {
     return json({ ok: false, error: "Tags updated but verification failed", detail: String(error) }, 502);
@@ -116,25 +151,16 @@ async function handleRegister(request, env) {
 
   const verifyData = await parseResponse(verifyResponse);
   if (!verifyResponse.ok) {
-    return json({
-      ok: false,
-      error: "Tags updated but OneSignal verification failed",
-      status: verifyResponse.status,
-      oneSignal: verifyData
-    }, 502);
+    return json({ ok: false, error: "OneSignal verification failed", status: verifyResponse.status, oneSignal: verifyData }, 502);
   }
 
   const verifiedTags = verifyData?.properties?.tags || {};
-  const requiredTagKeys = Object.keys(allowedTags);
-  const mismatches = requiredTagKeys.filter(key => String(verifiedTags[key] ?? "") !== String(allowedTags[key]));
+  const mismatches = Object.keys(allowedTags).filter(
+    key => String(verifiedTags[key] ?? "") !== String(allowedTags[key])
+  );
 
   if (mismatches.length) {
-    return json({
-      ok: false,
-      error: "OneSignal tag verification mismatch",
-      mismatches,
-      verifiedTags
-    }, 502);
+    return json({ ok: false, error: "OneSignal compact tag verification mismatch", mismatches, verifiedTags }, 502);
   }
 
   return json({
@@ -147,6 +173,35 @@ async function handleRegister(request, env) {
   });
 }
 
+function maskFiltersForBit(bit) {
+  const values = [];
+  for (let mask = 1; mask <= 511; mask++) {
+    if ((mask & (1 << bit)) !== 0) values.push(String(mask));
+  }
+  return values;
+}
+
+function makeFilterBatch(values) {
+  const filters = [];
+  values.forEach((value, i) => {
+    if (i) filters.push({ operator: "OR" });
+    filters.push({ field: "tag", key: "alert_mask", relation: "=", value });
+  });
+  return filters;
+}
+
+async function sendNotificationBatch(env, basePayload, filters) {
+  const response = await fetch("https://api.onesignal.com/notifications", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "authorization": `Key ${env.ONESIGNAL_API_KEY}`
+    },
+    body: JSON.stringify({ ...basePayload, filters })
+  });
+  return { status: response.status, ok: response.ok, data: await parseResponse(response) };
+}
+
 async function handleAlert(request, env) {
   if (!env.ONESIGNAL_APP_ID || !env.ONESIGNAL_API_KEY) {
     return json({ ok: false, error: "OneSignal secrets are not configured" }, 500);
@@ -154,9 +209,7 @@ async function handleAlert(request, env) {
 
   if (env.ALERT_API_KEY) {
     const supplied = request.headers.get("x-alert-key") || "";
-    if (supplied !== env.ALERT_API_KEY) {
-      return json({ ok: false, error: "Unauthorized" }, 401);
-    }
+    if (supplied !== env.ALERT_API_KEY) return json({ ok: false, error: "Unauthorized" }, 401);
   }
 
   let body;
@@ -172,78 +225,50 @@ async function handleAlert(request, env) {
   const phone = clean(body.phone);
   const summary = clean(body.summary, "No summary provided");
   const priority = clean(body.priority, "Normal");
-
-  const tagKey = `call_${slug(location)}_${slug(callType)}`;
+  const callTypeSlug = slug(callType);
+  const bit = CALL_TYPE_BITS[callTypeSlug] ?? CALL_TYPE_BITS.general_message;
   const title = `${callType} - ${location}`;
   const message = `${callerName} | ${phone}\n${summary}`;
 
-  const oneSignalPayload = {
+  const basePayload = {
     app_id: env.ONESIGNAL_APP_ID,
     headings: { en: title },
     contents: { en: message },
-    filters: [
-      {
-        field: "tag",
-        key: tagKey,
-        relation: "=",
-        value: "1"
-      }
-    ],
-    data: {
-      callType,
-      location,
-      callerName,
-      phone,
-      summary,
-      priority,
-      tagKey
-    }
+    data: { callType, location, callerName, phone, summary, priority, alertBit: bit }
   };
 
-  let oneSignalResponse;
+  const matchingMasks = maskFiltersForBit(bit);
+  const batches = [];
+  for (let i = 0; i < matchingMasks.length; i += 100) {
+    batches.push(matchingMasks.slice(i, i + 100));
+  }
+
+  const results = [];
   try {
-    oneSignalResponse = await fetch("https://api.onesignal.com/notifications", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "authorization": `Key ${env.ONESIGNAL_API_KEY}`
-      },
-      body: JSON.stringify(oneSignalPayload)
-    });
+    for (const batch of batches) {
+      results.push(await sendNotificationBatch(env, basePayload, makeFilterBatch(batch)));
+    }
   } catch (error) {
     return json({ ok: false, error: "Unable to reach OneSignal", detail: String(error) }, 502);
   }
 
-  const responseData = await parseResponse(oneSignalResponse);
-
-  if (!oneSignalResponse.ok) {
+  const successful = results.filter(r => r.ok && r.data && r.data.id);
+  if (!successful.length) {
     return json({
       ok: false,
-      error: "OneSignal rejected the notification",
-      status: oneSignalResponse.status,
-      tagKey,
-      oneSignal: responseData
+      error: "OneSignal did not create a notification for any matching alert-mask batch",
+      alertBit: bit,
+      oneSignal: results.map(r => ({ status: r.status, data: r.data }))
     }, 502);
   }
 
-  if (!responseData.id) {
-    return json({
-      ok: false,
-      error: "OneSignal did not create a notification",
-      status: oneSignalResponse.status,
-      tagKey,
-      notificationId: null,
-      recipients: responseData.recipients ?? null,
-      oneSignal: responseData
-    }, 502);
-  }
-
+  const recipients = successful.reduce((sum, r) => sum + (Number(r.data.recipients) || 0), 0);
   return json({
     ok: true,
-    tagKey,
-    notificationId: responseData.id,
-    recipients: responseData.recipients ?? null,
-    oneSignal: responseData
+    alertBit: bit,
+    notificationIds: successful.map(r => r.data.id),
+    recipients,
+    batchesSent: results.length
   });
 }
 
@@ -263,16 +288,12 @@ export default {
     }
 
     if (url.pathname === "/api/register") {
-      if (request.method !== "POST") {
-        return json({ ok: false, error: "Method not allowed" }, 405);
-      }
+      if (request.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
       return handleRegister(request, env);
     }
 
     if (url.pathname === "/api/alert") {
-      if (request.method !== "POST") {
-        return json({ ok: false, error: "Method not allowed" }, 405);
-      }
+      if (request.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
       return handleAlert(request, env);
     }
 
