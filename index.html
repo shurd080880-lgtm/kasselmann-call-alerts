@@ -74,7 +74,26 @@ function loadLocalRegistration(){personName.value=localStorage.getItem("kasselma
 async function getTags(){if(!oneSignalReady)return{};try{const r=oneSignalInstance.User.getTags();return r&&typeof r.then==="function"?await r:r||{}}catch(e){return{}}}
 async function load(){const t=await getTags();ALERT_TYPES.forEach(a=>{document.getElementById("pref_"+a.id).checked=a.tags.some(x=>String(t[tag(x)])==="1")});if(t.registered_name&&!personName.value)personName.value=t.registered_name;if(t.registered_phone&&!personPhone.value)personPhone.value=t.registered_phone;count()}
 async function diagnostics(){registeredDevice.textContent=deviceId();if(!oneSignalReady)return;const o=!!oneSignalInstance.User.PushSubscription.optedIn;diagOpted.textContent=o?"YES":"NO";diagSubscription.textContent=oneSignalInstance.User.PushSubscription.id||"Not available";const t=await getTags();registeredName.textContent=t.registered_name||localStorage.getItem("kasselmann_person_name")||"Not registered";registeredPhone.textContent=t.registered_phone||localStorage.getItem("kasselmann_person_phone")||"Not registered";diagTags.textContent=JSON.stringify(t,null,2)}
-async function enable(){if(!oneSignalReady){msg("statusMessage","Notification service is still loading.","error");return}if(isIOS()&&!isStandalone()){msg("statusMessage","On iPhone, add this page to your Home Screen first, then open it there and enable notifications.","info");return}try{await oneSignalInstance.Notifications.requestPermission();const o=!!oneSignalInstance.User.PushSubscription.optedIn;status(o);await diagnostics();msg("statusMessage",o?"Push notifications are enabled.":"Notification permission was not enabled.",o?"success":"error")}catch(e){msg("statusMessage","Unable to enable notifications: "+(e.message||e),"error")}}
+async function relinkAndRefresh(){
+  if(!oneSignalReady)return;
+  const id=deviceId();
+  try{
+    if(typeof oneSignalInstance.login==="function") await oneSignalInstance.login(id);
+    await new Promise(r=>setTimeout(r,500));
+    const existing=await getTags();
+    const name=(localStorage.getItem("kasselmann_person_name")||existing.registered_name||"").trim();
+    const phone=normalizePhone(localStorage.getItem("kasselmann_person_phone")||existing.registered_phone||"");
+    const opted=!!oneSignalInstance.User.PushSubscription.optedIn;
+    if(opted){
+      const tagsToApply={...existing,call_alerts_enabled:"1",registered_device_id:id,registered_location:"Office",registered_at:new Date().toISOString(),call_office_regulatory:"0",call_office_media_inquiry:"0"};
+      if(name)tagsToApply.registered_name=name;
+      if(phone)tagsToApply.registered_phone=phone;
+      await oneSignalInstance.User.addTags(tagsToApply);
+      await new Promise(r=>setTimeout(r,700));
+    }
+  }catch(e){console.error("OneSignal relink failed",e)}
+}
+async function enable(){if(!oneSignalReady){msg("statusMessage","Notification service is still loading.","error");return}if(isIOS()&&!isStandalone()){msg("statusMessage","On iPhone, add this page to your Home Screen first, then open it there and enable notifications.","info");return}try{await oneSignalInstance.Notifications.requestPermission();const o=!!oneSignalInstance.User.PushSubscription.optedIn;if(o)await relinkAndRefresh();status(o);await diagnostics();msg("statusMessage",o?"Push notifications are enabled and this device is linked.":"Notification permission was not enabled.",o?"success":"error")}catch(e){msg("statusMessage","Unable to enable notifications: "+(e.message||e),"error")}}
 async function save(){
   msg("saveMessage","Saving registration and Office alert preferences...","info");
   const name=personName.value.trim();
@@ -90,11 +109,11 @@ async function save(){
     const t={call_alerts_enabled:"1",registered_name:name,registered_phone:phone,registered_device_id:id,registered_location:"Office",registered_at:new Date().toISOString(),call_office_regulatory:"0",call_office_media_inquiry:"0"};
     ALERT_TYPES.forEach(a=>{const v=document.getElementById("pref_"+a.id).checked?"1":"0";a.tags.forEach(x=>t[tag(x)]=v)});
     await oneSignalInstance.User.addTags(t);
-    await new Promise(r=>setTimeout(r,700));
+    await new Promise(r=>setTimeout(r,1000));
     await diagnostics();
-    msg("saveMessage","Registration and Office alert preferences were saved successfully.","success");
+    msg("saveMessage","Registration, device link, and Office alert preferences were saved successfully.","success");
   }catch(e){msg("saveMessage","Unable to save registration: "+(e.message||e),"error")}
 }
-loadLocalRegistration();render();if(isIOS()&&!isStandalone())iosHelp.classList.add("show");enableNotifications.onclick=enable;savePreferences.onclick=save;selectAll.onclick=()=>setAll(true);clearAll.onclick=()=>setAll(false);refreshDiagnostics.onclick=diagnostics;
-window.OneSignalDeferred.push(async OneSignal=>{try{await OneSignal.init({appId:ONESIGNAL_APP_ID,serviceWorkerPath:"OneSignalSDKWorker.js",serviceWorkerParam:{scope:"/"},notifyButton:{enable:false}});oneSignalInstance=OneSignal;oneSignalReady=true;status(OneSignal.User.PushSubscription.optedIn);await load();await diagnostics();OneSignal.User.PushSubscription.addEventListener("change",async e=>{status(e.current.optedIn);await diagnostics()})}catch(e){statusDot.className="status-dot off";statusText.textContent="Push Notification Setup Error";msg("statusMessage","Call Alerts could not connect to OneSignal: "+(e.message||e),"error")}});
+loadLocalRegistration();render();if(isIOS()&&!isStandalone())iosHelp.classList.add("show");enableNotifications.onclick=enable;savePreferences.onclick=save;selectAll.onclick=()=>setAll(true);clearAll.onclick=()=>setAll(false);refreshDiagnostics.onclick=async()=>{await relinkAndRefresh();await load();await diagnostics()};
+window.OneSignalDeferred.push(async OneSignal=>{try{await OneSignal.init({appId:ONESIGNAL_APP_ID,serviceWorkerPath:"OneSignalSDKWorker.js",serviceWorkerParam:{scope:"/"},notifyButton:{enable:false}});oneSignalInstance=OneSignal;oneSignalReady=true;await relinkAndRefresh();status(OneSignal.User.PushSubscription.optedIn);await load();await diagnostics();OneSignal.User.PushSubscription.addEventListener("change",async e=>{if(e.current.optedIn)await relinkAndRefresh();status(e.current.optedIn);await diagnostics()})}catch(e){statusDot.className="status-dot off";statusText.textContent="Push Notification Setup Error";msg("statusMessage","Call Alerts could not connect to OneSignal: "+(e.message||e),"error")}});
 </script></body></html>
