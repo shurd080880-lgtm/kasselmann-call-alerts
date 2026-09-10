@@ -17,11 +17,8 @@
 </head>
 <body><div class="page">
 <div class="header"><h1>Kasselmann Call Alerts</h1><p>Office notification settings.</p></div>
-
 <div class="card"><div class="status-row"><div id="statusDot" class="status-dot"></div><div><div id="statusText" class="status-text">Checking notification status...</div><div id="statusSubtext" class="subtext">Please wait while Call Alerts loads.</div></div></div><button id="enableNotifications" class="primary">Enable Push Notifications</button><div id="statusMessage" class="message"></div></div>
-
 <div id="iosHelp" class="card ios-help"><strong>Using an iPhone?</strong><p>Add this page to your Home Screen first, then open Kasselmann Call Alerts from the Home Screen and enable notifications.</p></div>
-
 <div class="section-title">Device Registration</div>
 <div class="card">
   <div class="location-title">Who is using this device?</div>
@@ -30,11 +27,9 @@
   <div class="field"><label for="personPhone">Mobile Number</label><input id="personPhone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Example: (502) 555-1234" maxlength="25"></div>
   <div class="privacy-note">This information is saved with the OneSignal notification subscription so Kasselmann can identify who a subscribed device belongs to. The app cannot read your phone number automatically.</div>
 </div>
-
 <div class="section-title">Office Alerts</div>
 <div class="card"><div class="location-title">Office</div><div id="officeCount" class="subtext">No alerts selected</div><div class="select-actions"><button id="selectAll" class="small">Select All</button><button id="clearAll" class="small">Clear</button></div><div id="alertList"></div></div>
 <button id="savePreferences" class="primary">Save Registration & Office Alerts</button><div id="saveMessage" class="message"></div>
-
 <div class="card" style="margin-top:14px">
   <strong>Registered Device</strong>
   <div class="registered-line"><strong>Name:</strong> <span id="registeredName">Not registered</span></div>
@@ -42,6 +37,7 @@
   <div class="registered-line"><strong>Device ID:</strong> <span id="registeredDevice">Not available</span></div>
   <div class="subtext">Push opted in: <span id="diagOpted">Checking...</span></div>
   <div class="subtext">Subscription ID: <span id="diagSubscription">Checking...</span></div>
+  <div class="subtext">Server tag sync: <span id="serverSync">Not checked</span></div>
   <div id="diagTags" class="diag">Loading tags...</div>
   <button id="refreshDiagnostics" class="secondary">Refresh Device Details</button>
 </div>
@@ -59,7 +55,7 @@ const ALERT_TYPES=[
 {id:"general_message",label:"General Message",tags:["general_message"]},
 {id:"emergency",label:"Emergency",tags:["emergency"]}
 ];
-let oneSignalReady=false,oneSignalInstance=null;
+let oneSignalReady=false,oneSignalInstance=null,lastServerTags=null;
 const tag=id=>"call_office_"+id;
 const isIOS=()=>/iPhone|iPad|iPod/i.test(navigator.userAgent);
 const isStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
@@ -72,30 +68,44 @@ function normalizePhone(v){return String(v||"").replace(/[^0-9+]/g,"").trim()}
 function deviceId(){let id=localStorage.getItem("kasselmann_device_id");if(!id){const raw=(crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+"_"+Math.random().toString(36).slice(2);id="kasselmann_device_"+raw;localStorage.setItem("kasselmann_device_id",id)}return id}
 function loadLocalRegistration(){personName.value=localStorage.getItem("kasselmann_person_name")||"";personPhone.value=localStorage.getItem("kasselmann_person_phone")||"";registeredDevice.textContent=deviceId()}
 async function getTags(){if(!oneSignalReady)return{};try{const r=oneSignalInstance.User.getTags();return r&&typeof r.then==="function"?await r:r||{}}catch(e){return{}}}
-async function load(){const t=await getTags();ALERT_TYPES.forEach(a=>{document.getElementById("pref_"+a.id).checked=a.tags.some(x=>String(t[tag(x)])==="1")});if(t.registered_name&&!personName.value)personName.value=t.registered_name;if(t.registered_phone&&!personPhone.value)personPhone.value=t.registered_phone;count()}
-async function diagnostics(){registeredDevice.textContent=deviceId();if(!oneSignalReady)return;const o=!!oneSignalInstance.User.PushSubscription.optedIn;diagOpted.textContent=o?"YES":"NO";diagSubscription.textContent=oneSignalInstance.User.PushSubscription.id||"Not available";const t=await getTags();registeredName.textContent=t.registered_name||localStorage.getItem("kasselmann_person_name")||"Not registered";registeredPhone.textContent=t.registered_phone||localStorage.getItem("kasselmann_person_phone")||"Not registered";diagTags.textContent=JSON.stringify(t,null,2)}
+function buildTags(name,phone){
+  const id=deviceId();
+  const t={call_alerts_enabled:"1",registered_name:name,registered_phone:phone,registered_device_id:id,registered_location:"Office",registered_at:new Date().toISOString(),call_office_regulatory:"0",call_office_media_inquiry:"0"};
+  ALERT_TYPES.forEach(a=>{const v=document.getElementById("pref_"+a.id).checked?"1":"0";a.tags.forEach(x=>t[tag(x)]=v)});
+  return t;
+}
+async function syncTagsToServer(id,tags){
+  serverSync.textContent="Checking...";
+  const r=await fetch("/api/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({externalId:id,tags})});
+  let data={};
+  try{data=await r.json()}catch(e){throw new Error("Server returned an invalid response")}
+  if(!r.ok||!data.ok)throw new Error(data.error||("Server registration failed (HTTP "+r.status+")"));
+  lastServerTags=data.verifiedTags||{};
+  serverSync.textContent="VERIFIED";
+  return data;
+}
+async function load(){const t=lastServerTags||await getTags();ALERT_TYPES.forEach(a=>{document.getElementById("pref_"+a.id).checked=a.tags.some(x=>String(t[tag(x)])==="1")});if(t.registered_name&&!personName.value)personName.value=t.registered_name;if(t.registered_phone&&!personPhone.value)personPhone.value=t.registered_phone;count()}
+async function diagnostics(){registeredDevice.textContent=deviceId();if(!oneSignalReady)return;const o=!!oneSignalInstance.User.PushSubscription.optedIn;diagOpted.textContent=o?"YES":"NO";diagSubscription.textContent=oneSignalInstance.User.PushSubscription.id||"Not available";const t=lastServerTags||await getTags();registeredName.textContent=t.registered_name||localStorage.getItem("kasselmann_person_name")||"Not registered";registeredPhone.textContent=t.registered_phone||localStorage.getItem("kasselmann_person_phone")||"Not registered";diagTags.textContent=JSON.stringify(t,null,2)}
 async function relinkAndRefresh(){
   if(!oneSignalReady)return;
   const id=deviceId();
   try{
     if(typeof oneSignalInstance.login==="function") await oneSignalInstance.login(id);
-    await new Promise(r=>setTimeout(r,500));
+    await new Promise(r=>setTimeout(r,700));
     const existing=await getTags();
     const name=(localStorage.getItem("kasselmann_person_name")||existing.registered_name||"").trim();
     const phone=normalizePhone(localStorage.getItem("kasselmann_person_phone")||existing.registered_phone||"");
     const opted=!!oneSignalInstance.User.PushSubscription.optedIn;
-    if(opted){
-      const tagsToApply={...existing,call_alerts_enabled:"1",registered_device_id:id,registered_location:"Office",registered_at:new Date().toISOString(),call_office_regulatory:"0",call_office_media_inquiry:"0"};
-      if(name)tagsToApply.registered_name=name;
-      if(phone)tagsToApply.registered_phone=phone;
+    if(opted&&name&&phone){
+      const tagsToApply={...existing,call_alerts_enabled:"1",registered_name:name,registered_phone:phone,registered_device_id:id,registered_location:"Office",registered_at:new Date().toISOString(),call_office_regulatory:"0",call_office_media_inquiry:"0"};
       await oneSignalInstance.User.addTags(tagsToApply);
-      await new Promise(r=>setTimeout(r,700));
     }
   }catch(e){console.error("OneSignal relink failed",e)}
 }
 async function enable(){if(!oneSignalReady){msg("statusMessage","Notification service is still loading.","error");return}if(isIOS()&&!isStandalone()){msg("statusMessage","On iPhone, add this page to your Home Screen first, then open it there and enable notifications.","info");return}try{await oneSignalInstance.Notifications.requestPermission();const o=!!oneSignalInstance.User.PushSubscription.optedIn;if(o)await relinkAndRefresh();status(o);await diagnostics();msg("statusMessage",o?"Push notifications are enabled and this device is linked.":"Notification permission was not enabled.",o?"success":"error")}catch(e){msg("statusMessage","Unable to enable notifications: "+(e.message||e),"error")}}
 async function save(){
-  msg("saveMessage","Saving registration and Office alert preferences...","info");
+  msg("saveMessage","Saving and verifying registration...","info");
+  serverSync.textContent="Checking...";
   const name=personName.value.trim();
   const phone=normalizePhone(personPhone.value);
   if(name.length<2){msg("saveMessage","Enter the full name of the person using this device.","error");personName.focus();return}
@@ -104,15 +114,19 @@ async function save(){
   try{
     const id=deviceId();
     if(typeof oneSignalInstance.login==="function") await oneSignalInstance.login(id);
+    await new Promise(r=>setTimeout(r,900));
     localStorage.setItem("kasselmann_person_name",name);
     localStorage.setItem("kasselmann_person_phone",phone);
-    const t={call_alerts_enabled:"1",registered_name:name,registered_phone:phone,registered_device_id:id,registered_location:"Office",registered_at:new Date().toISOString(),call_office_regulatory:"0",call_office_media_inquiry:"0"};
-    ALERT_TYPES.forEach(a=>{const v=document.getElementById("pref_"+a.id).checked?"1":"0";a.tags.forEach(x=>t[tag(x)]=v)});
+    const t=buildTags(name,phone);
     await oneSignalInstance.User.addTags(t);
-    await new Promise(r=>setTimeout(r,1000));
+    await new Promise(r=>setTimeout(r,500));
+    const serverResult=await syncTagsToServer(id,t);
+    const enabledSubscriptions=(serverResult.subscriptions||[]).filter(s=>s.enabled!==false);
+    if(!enabledSubscriptions.length)throw new Error("OneSignal has no enabled push subscription linked to this registered device.");
+    await load();
     await diagnostics();
-    msg("saveMessage","Registration, device link, and Office alert preferences were saved successfully.","success");
-  }catch(e){msg("saveMessage","Unable to save registration: "+(e.message||e),"error")}
+    msg("saveMessage","Registration and Office alert tags were verified on OneSignal successfully.","success");
+  }catch(e){serverSync.textContent="FAILED";msg("saveMessage","Unable to verify registration: "+(e.message||e),"error")}
 }
 loadLocalRegistration();render();if(isIOS()&&!isStandalone())iosHelp.classList.add("show");enableNotifications.onclick=enable;savePreferences.onclick=save;selectAll.onclick=()=>setAll(true);clearAll.onclick=()=>setAll(false);refreshDiagnostics.onclick=async()=>{await relinkAndRefresh();await load();await diagnostics()};
 window.OneSignalDeferred.push(async OneSignal=>{try{await OneSignal.init({appId:ONESIGNAL_APP_ID,serviceWorkerPath:"OneSignalSDKWorker.js",serviceWorkerParam:{scope:"/"},notifyButton:{enable:false}});oneSignalInstance=OneSignal;oneSignalReady=true;await relinkAndRefresh();status(OneSignal.User.PushSubscription.optedIn);await load();await diagnostics();OneSignal.User.PushSubscription.addEventListener("change",async e=>{if(e.current.optedIn)await relinkAndRefresh();status(e.current.optedIn);await diagnostics()})}catch(e){statusDot.className="status-dot off";statusText.textContent="Push Notification Setup Error";msg("statusMessage","Call Alerts could not connect to OneSignal: "+(e.message||e),"error")}});
